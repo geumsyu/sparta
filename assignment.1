@@ -1,0 +1,248 @@
+using System;
+using System.Collections.Generic;
+
+class Program
+{
+    static void Main()
+    {
+        Character player = new Character("Chad", "전사");
+
+        Console.WriteLine("스파르타 던전에 오신 것을 환영합니다.");
+        Console.Write("이름을 입력해주세요: ");
+        string name = Console.ReadLine();
+        player.Name = string.IsNullOrEmpty(name) ? "Chad" : name;
+
+        bool inDungeon = true;
+        while (inDungeon)
+        {
+            Console.Clear();
+            Console.WriteLine("던전에서 할 수 있는 일을 선택하세요.");
+            Console.WriteLine("1. 상태보기");
+            Console.WriteLine("2. 인벤토리");
+            Console.WriteLine("3. 상점");
+            Console.WriteLine("0. 나가기");
+            Console.Write("원하시는 행동을 입력해주세요: ");
+            string choice = Console.ReadLine() ?? "0";  
+
+            switch (choice)
+            {
+                case "1":
+                    ShowStatus(player);
+                    break;
+                case "2":
+                    ShowInventory(player);
+                    break;
+                case "3":
+                    Shop(player);
+                    break;
+                case "0":
+                    inDungeon = false;
+                    break;
+                default:
+                    Console.WriteLine("잘못된 입력입니다.");
+                    break;
+            }
+        }
+    }
+
+    static void ShowStatus(Character player)
+    {
+        int totalAttack = player.AttackPower;
+        int totalDefense = player.DefensePower;
+
+        foreach (var item in player.Inventory)
+        {
+            if (item.IsEquipped)
+            {
+                if (item.Description.Contains("공격력"))
+                    totalAttack += ExtractStatValue(item.Description);  
+                else if (item.Description.Contains("방어력"))
+                    totalDefense += ExtractStatValue(item.Description); 
+            }
+        }
+
+        Console.Clear();
+        Console.WriteLine("**상태 보기**");
+        Console.WriteLine($"Lv. {player.Level:D2}      {player.Name} ({player.Class})");
+        Console.WriteLine($"공격력 : {totalAttack} (+{totalAttack - player.AttackPower})");
+        Console.WriteLine($"방어력 : {totalDefense} (+{totalDefense - player.DefensePower})");
+        Console.WriteLine($"체력 : {player.Health}");
+        Console.WriteLine($"Gold : {player.Gold} G");
+        Console.WriteLine("\n0. 나가기");
+        Console.Write("원하시는 행동을 입력해주세요: ");
+        Console.ReadLine();
+    }
+
+    static int ExtractStatValue(string description)
+    {
+        string[] parts = description.Split(new[] { '+' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length > 1 && int.TryParse(parts[1].Trim(), out int value))
+        {
+            return value;
+        }
+        return 0;
+    }
+
+    static void ShowInventory(Character player)
+    {
+        Console.Clear();
+        Console.WriteLine("**인벤토리**");
+        Console.WriteLine("보유 중인 아이템을 관리할 수 있습니다.");
+        Console.WriteLine("[아이템 목록]");
+
+        foreach (var item in player.Inventory)
+        {
+            string equipped = item.IsEquipped ? "[E]" : "";
+            Console.WriteLine($"{equipped}{item.Name} | {item.Description}");
+        }
+
+        Console.WriteLine("\n1. 장착 관리");
+        Console.WriteLine("0. 나가기");
+        Console.Write("원하시는 행동을 입력해주세요: ");
+        string choice = Console.ReadLine() ?? "0";  
+
+        if (choice == "1")
+        {
+            ManageEquip(player);
+        }
+    }
+
+    static void ManageEquip(Character player)
+    {
+        Console.Clear();
+        Console.WriteLine("**장착 관리**");
+        Console.WriteLine("[아이템 목록]");
+
+        for (int i = 0; i < player.Inventory.Count; i++)
+        {
+            string equipped = player.Inventory[i].IsEquipped ? "[E]" : "";
+            Console.WriteLine($"{i + 1}. {equipped}{player.Inventory[i].Name} | {player.Inventory[i].Description}");
+        }
+
+        Console.WriteLine("0. 나가기");
+        Console.Write("원하시는 행동을 입력해주세요: ");
+        string choice = Console.ReadLine() ?? "0";  
+
+        if (choice == "0")
+            return;
+
+        if (int.TryParse(choice, out int index) && index >= 1 && index <= player.Inventory.Count)
+        {
+            Item selectedItem = player.Inventory[index - 1];
+            if (selectedItem.IsEquipped)
+            {
+                selectedItem.IsEquipped = false;
+                Console.WriteLine($"{selectedItem.Name}의 장착을 해제했습니다.");
+            }
+            else
+            {
+                selectedItem.IsEquipped = true;
+                Console.WriteLine($"{selectedItem.Name}을(를) 장착했습니다.");
+            }
+        }
+        else
+        {
+            Console.WriteLine("잘못된 입력입니다.");
+        }
+        Console.WriteLine("Press any key to continue...");
+        Console.ReadKey();
+    }
+
+    static void Shop(Character player)
+    {
+        Console.Clear();
+        Console.WriteLine("**상점**");
+        Console.WriteLine($"[보유 골드] {player.Gold} G");
+        Console.WriteLine("[아이템 목록]");
+
+        List<Item> shopItems = new List<Item>
+        {
+            new Item("수련자 갑옷", "방어력 +5", 1000),
+            new Item("무쇠갑옷", "방어력 +9", 1500),
+            new Item("스파르타의 갑옷", "방어력 +15", 3500),
+            new Item("낡은 검", "공격력 +2", 600),
+            new Item("청동 도끼", "공격력 +5", 1500),
+            new Item("스파르타의 창", "공격력 +7", 2000)
+        };
+
+        for (int i = 0; i < shopItems.Count; i++)
+        {
+            string status = player.Inventory.Exists(item => item.Name == shopItems[i].Name) ? "구매완료" : $"{shopItems[i].Price} G";
+            Console.WriteLine($"{i + 1}. {shopItems[i].Name} | {shopItems[i].Description} | {status}");
+        }
+
+        Console.WriteLine("0. 나가기");
+        Console.Write("원하시는 행동을 입력해주세요: ");
+        string choice = Console.ReadLine() ?? "0";  // null 처리
+
+        if (choice == "0")
+            return;
+
+        if (int.TryParse(choice, out int itemIndex) && itemIndex >= 1 && itemIndex <= shopItems.Count)
+        {
+            Item selectedItem = shopItems[itemIndex - 1];
+
+            if (player.Inventory.Exists(item => item.Name == selectedItem.Name))
+            {
+                Console.WriteLine("이미 구매한 아이템입니다.");
+            }
+            else if (player.Gold >= selectedItem.Price)
+            {
+                player.Gold -= selectedItem.Price;
+                player.Inventory.Add(new Item(selectedItem.Name, selectedItem.Description, selectedItem.Price) { IsEquipped = false });
+                Console.WriteLine($"{selectedItem.Name}을(를) 구매했습니다.");
+            }
+            else
+            {
+                Console.WriteLine("Gold가 부족합니다.");
+            }
+        }
+        else
+        {
+            Console.WriteLine("잘못된 입력입니다.");
+        }
+
+        Console.WriteLine("Press any key to continue...");
+        Console.ReadKey();
+    }
+}
+
+class Character
+{
+    public string Name { get; set; }
+    public string Class { get; set; }
+    public int Level { get; set; }
+    public int AttackPower { get; set; }
+    public int DefensePower { get; set; }
+    public int Health { get; set; }
+    public int Gold { get; set; }
+    public List<Item> Inventory { get; set; }
+
+    public Character(string name, string characterClass)
+    {
+        Name = string.IsNullOrEmpty(name) ? "Chad" : name;  
+        Class = string.IsNullOrEmpty(characterClass) ? "전사" : characterClass;  
+        Level = 1;
+        AttackPower = 10;
+        DefensePower = 5;
+        Health = 100;
+        Gold = 10000;
+        Inventory = new List<Item>(); 
+    }
+}
+
+class Item
+{
+    public string Name { get; set; }
+    public string Description { get; set; }
+    public int Price { get; set; }
+    public bool IsEquipped { get; set; }
+
+    public Item(string name, string description, int price)
+    {
+        Name = string.IsNullOrEmpty(name) ? "Unknown" : name;  
+        Description = string.IsNullOrEmpty(description) ? "설명 없음" : description;  
+        Price = price;
+        IsEquipped = false;
+    }
+}
